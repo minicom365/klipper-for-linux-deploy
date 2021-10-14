@@ -134,7 +134,7 @@ sudo tee $KLIPPER_START <<EOF
 # Provides:          klipper
 # Default-Start:        2 3 4 5
 # Default-Stop:
-# Required-Start:    $local_fs $remote_fs
+# Required-Start:    \$local_fs \$remote_fs
 # Short-Description: klipper
 # Description: klipper
 ### END INIT INFO
@@ -190,7 +190,7 @@ sudo tee $MOONRAKER_START <<EOF
 # Provides:          moonraker
 # Default-Start:        2 3 4 5
 # Default-Stop:
-# Required-Start:    $local_fs $remote_fs klipper
+# Required-Start:    \$local_fs \$remote_fs klipper
 # Short-Description: moonraker
 # Description: moonraker
 ### END INIT INFO
