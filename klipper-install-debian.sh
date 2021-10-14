@@ -17,9 +17,8 @@ KLIPPER_GIT="$HOME/klipper"
 MOONRAKER_GIT="$HOME/moonraker"
 
 GLOBAL_START="/etc/rc.local"
-GLOBAL_START_PH="$HOME/rc.local"
-KLIPPER_START="$HOME/klipper-start.sh"
-MOONRAKER_START="$HOME/moonraker-start.sh"
+KLIPPER_START="/etc/init.d/klipper"
+MOONRAKER_START="/etc/init.d/moonraker"
 
 KLIPPER_CONFIG="$HOME/klipper_config"
 GCODE_FILES="$HOME/gcode_files"
@@ -27,8 +26,6 @@ GCODE_FILES="$HOME/gcode_files"
 ### Mounting /tmp
 echo "Re-mounting /tmp from tmpfs"
 
-sudo rm -rf /tmp
-sudo mkdir -p /tmp
 sudo mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
 
 ### packages
@@ -78,7 +75,13 @@ ${MOONRAKER_ENV}/bin/pip install --no-use-pep517 streaming-form-data
 ${MOONRAKER_ENV}/bin/pip install --no-use-pep517 tornado
 ${MOONRAKER_ENV}/bin/pip install --no-use-pep517 pillow
 ${MOONRAKER_ENV}/bin/pip install --no-use-pep517 lmdb
+${MOONRAKER_ENV}/bin/pip install --no-use-pep517 pycurl
+${MOONRAKER_ENV}/bin/pip install --no-use-pep517 distro
+${MOONRAKER_ENV}/bin/pip install --no-use-pep517 inotify-simple
+${MOONRAKER_ENV}/bin/pip install --no-use-pep517 libnacl
+${MOONRAKER_ENV}/bin/pip install --no-use-pep517 paho-mqtt
 ${MOONRAKER_ENV}/bin/pip install --no-use-pep517 -r ${MOONRAKER_GIT}/scripts/moonraker-requirements.txt
+${MOONRAKER_ENV}/bin/pip install -r ${MOONRAKER_GIT}/scripts/moonraker-requirements.txt
 
 cat <<EOF > ${KLIPPER_CONFIG}/moonraker.conf
 [server]
@@ -110,28 +113,147 @@ EOF
 ### autostart
 echo "Creating autostart entries for run-parts"
 
-cat <<EOF > $KLIPPER_START
+sudo mv /usr/bin/systemctl /usr/bin/systemctl2
+sudo tee -a /usr/bin/systemctl <<EOF
 #!/bin/bash
-$KLIPPY_ENV/bin/python $KLIPPER_GIT/klippy/klippy.py $KLIPPER_CONFIG/printer.cfg -l /tmp/klippy.log -a /tmp/klippy_uds
+
+if [ "$1" = "list-units" ]
+then
+ echo "klipper.service"
+ echo "moonraker.service"
+ exit 0
+fi
+
+/usr/sbin/service "$2" "$1"
+EOF
+chmod +x /usr/bin/systemctl
+
+sudo tee -a $KLIPPER_START <<EOF
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          klipper
+# Default-Start:        2 3 4 5
+# Default-Stop:
+# Required-Start:    $local_fs $remote_fs
+# Short-Description: klipper
+# Description: klipper
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+N=/etc/init.d/klipper
+PIDFILE=/run/klipper.pid
+USERNAME=$USER
+EXEC="/home/\$USERNAME/klippy-env/bin/python"
+EXEC_OPTS="/home/\$USERNAME/klipper/klippy/klippy.py /home/\$USERNAME/klipper_config/printer.cfg -l /tmp/klippy.log -a /tmp/klippy_uds"
+
+set -e
+
+f_start ()
+{
+  chmod 777 /dev/ttyACM0
+  start-stop-daemon --start --background --chuid $USERNAME --make-pidfile --pidfile $PIDFILE --exec $EXEC -- $EXEC_OPTS
+}
+
+f_stop ()
+{
+  start-stop-daemon --stop --pidfile $PIDFILE
+}
+
+case "$1" in
+  start)
+        f_start
+        ;;
+  stop)
+        f_stop
+        ;;
+  restart)
+        f_stop
+        sleep 1
+        f_start
+        ;;
+  reload|force-reload|status)
+        ;;
+  *)
+        echo "Usage: $N {start|stop|restart|force-reload|status}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
 EOF
 chmod +x $KLIPPER_START
 
-cat <<EOF > $MOONRAKER_START
-#!/bin/bash
-$MOONRAKER_ENV/bin/python $MOONRAKER_GIT/moonraker/moonraker.py -c ${KLIPPER_CONFIG}/moonraker.conf -l /tmp/moonraker.log
+sudo tee -a $MOONRAKER_START <<EOF
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          moonraker
+# Default-Start:        2 3 4 5
+# Default-Stop:
+# Required-Start:    $local_fs $remote_fs klipper
+# Short-Description: moonraker
+# Description: moonraker
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+N=/etc/init.d/moonraker
+PIDFILE=/run/moonraker.pid
+USERNAME=$USER
+EXEC="/home/\$USERNAME/moonraker-env/bin/python"
+EXEC_OPTS="/home/\$USERNAME/moonraker/moonraker/moonraker.py -c /home/\$USERNAME/klipper_config/moonraker.conf -l /tmp/moonraker.log"
+EXEC="/home/\$USERNAME/moonraker-env/bin/python"
+EXEC_OPTS="/home/$USERNAME/moonraker/moonraker/moonraker.py -c /home/$USERNAME/klipper_config/moonraker.conf -l /tmp/moonraker.log"
+
+set -e
+
+f_start ()
+{
+  start-stop-daemon --start --background --chuid $USERNAME --make-pidfile --pidfile $PIDFILE --exec $EXEC -- $EXEC_OPTS
+}
+
+f_stop ()
+{
+  start-stop-daemon --stop --pidfile $PIDFILE
+}
+
+case "$1" in
+  start)
+        f_start
+        ;;
+  stop)
+        f_stop
+        ;;
+  restart)
+        f_stop
+        sleep 1
+        f_start
+        ;;
+  reload|force-reload|status)
+        ;;
+  *)
+        echo "Usage: $N {start|stop|restart|force-reload|status}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
 EOF
 chmod +x $MOONRAKER_START
 
-cat <<EOF > $GLOBAL_START_PH
+sudo tee -a $GLOBAL_START <<EOF
 #!/bin/bash
 mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
 chmod 777 /dev/ttyACM0
 
-su -l $USER $KLIPPER_START &
-su -l $USER $MOONRAKER_START &
+service klipper start
+service moonraker start
 EOF
-sudo mv $GLOBAL_START_PH $GLOBAL_START
 sudo chmod +x $GLOBAL_START
 
+sudo service klipper start
+sleep 10
+sudo service moonraker start
+
 ### complete
-echo "Installation complete! Please start/stop container now!"
+echo "Installation complete! Starting klipper and moonraker now!"
