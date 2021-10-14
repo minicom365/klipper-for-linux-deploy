@@ -34,6 +34,7 @@ sudo mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
 ### packages
 echo "Installing required packages"
 
+sudo apt update
 sudo apt install git virtualenv python-dev libffi-dev build-essential libncurses-dev libusb-dev stm32flash libnewlib-arm-none-eabi gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0 pkg-config dfu-util python3-virtualenv python3-dev libopenjp2-7 python3-libgpiod liblmdb0 libsodium-dev zlib1g-dev libjpeg-dev libcurl4-openssl-dev libssl-dev
 sudo apt install -f
 sudo apt clean
