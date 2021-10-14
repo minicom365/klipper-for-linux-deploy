@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ "$(id  -u)" = "0" ]
+then
+  echo "Start script as user!"
+  exit 1
+fi
+
 ### environment
 echo "Initializing environment variables"
 
@@ -83,8 +89,6 @@ database_path: ~/.moonraker_database
 klippy_uds_address: /tmp/klippy_uds
 
 [authorization]
-enabled: True
-api_key_file: ~/.moonraker_api_key
 trusted_clients:
     127.0.0.1
     192.168.0.0/16
@@ -122,8 +126,8 @@ cat <<EOF > $GLOBAL_START_PH
 mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
 chmod 777 /dev/ttyACM0
 
-$KLIPPER_START &
-$MOONRAKER_START &
+su -l $USER $KLIPPER_START &
+su -l $USER $MOONRAKER_START &
 EOF
 sudo mv $GLOBAL_START_PH $GLOBAL_START
 sudo chmod +x $GLOBAL_START
