@@ -242,7 +242,7 @@ sudo chmod +x $MOONRAKER_START
 sudo tee -a $GLOBAL_START <<EOF
 #!/bin/bash
 mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
-sudo chmod 777 /dev/ttyACM0
+chmod 777 /dev/ttyACM0
 
 service klipper start
 service moonraker start
