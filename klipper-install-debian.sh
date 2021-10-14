@@ -114,21 +114,21 @@ EOF
 echo "Creating autostart entries for run-parts"
 
 sudo mv /usr/bin/systemctl /usr/bin/systemctl2
-sudo tee -a /usr/bin/systemctl <<EOF
+sudo tee /usr/bin/systemctl <<EOF
 #!/bin/bash
 
-if [ "$1" = "list-units" ]
+if [ "\$1" = "list-units" ]
 then
  echo "klipper.service"
  echo "moonraker.service"
  exit 0
 fi
 
-/usr/sbin/service "$2" "$1"
+/usr/sbin/service "\$2" "\$1"
 EOF
-chmod +x /usr/bin/systemctl
+sudo chmod +x /usr/bin/systemctl
 
-sudo tee -a $KLIPPER_START <<EOF
+sudo tee $KLIPPER_START <<EOF
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          klipper
@@ -152,15 +152,15 @@ set -e
 f_start ()
 {
   chmod 777 /dev/ttyACM0
-  start-stop-daemon --start --background --chuid $USERNAME --make-pidfile --pidfile $PIDFILE --exec $EXEC -- $EXEC_OPTS
+  start-stop-daemon --start --background --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
 }
 
 f_stop ()
 {
-  start-stop-daemon --stop --pidfile $PIDFILE
+  start-stop-daemon --stop --pidfile \$PIDFILE
 }
 
-case "$1" in
+case "\$1" in
   start)
         f_start
         ;;
@@ -182,9 +182,9 @@ esac
 
 exit 0
 EOF
-chmod +x $KLIPPER_START
+sudo chmod +x $KLIPPER_START
 
-sudo tee -a $MOONRAKER_START <<EOF
+sudo tee $MOONRAKER_START <<EOF
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          moonraker
@@ -202,22 +202,20 @@ PIDFILE=/run/moonraker.pid
 USERNAME=$USER
 EXEC="/home/\$USERNAME/moonraker-env/bin/python"
 EXEC_OPTS="/home/\$USERNAME/moonraker/moonraker/moonraker.py -c /home/\$USERNAME/klipper_config/moonraker.conf -l /tmp/moonraker.log"
-EXEC="/home/\$USERNAME/moonraker-env/bin/python"
-EXEC_OPTS="/home/$USERNAME/moonraker/moonraker/moonraker.py -c /home/$USERNAME/klipper_config/moonraker.conf -l /tmp/moonraker.log"
 
 set -e
 
 f_start ()
 {
-  start-stop-daemon --start --background --chuid $USERNAME --make-pidfile --pidfile $PIDFILE --exec $EXEC -- $EXEC_OPTS
+  start-stop-daemon --start --background --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
 }
 
 f_stop ()
 {
-  start-stop-daemon --stop --pidfile $PIDFILE
+  start-stop-daemon --stop --pidfile \$PIDFILE
 }
 
-case "$1" in
+case "\$1" in
   start)
         f_start
         ;;
@@ -239,12 +237,12 @@ esac
 
 exit 0
 EOF
-chmod +x $MOONRAKER_START
+sudo chmod +x $MOONRAKER_START
 
 sudo tee -a $GLOBAL_START <<EOF
 #!/bin/bash
 mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
-chmod 777 /dev/ttyACM0
+sudo chmod 777 /dev/ttyACM0
 
 service klipper start
 service moonraker start
