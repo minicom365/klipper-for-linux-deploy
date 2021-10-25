@@ -13,6 +13,12 @@ then
   exit 1
 fi
 
+if ! grep xterm "$HOME/.xsession" > /dev/null
+then
+  echo "Configure container with XTerm graphics over vnc!"
+  exit 1
+fi
+
 ### environment
 echo "Initializing environment variables"
 
@@ -36,7 +42,7 @@ sudo mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
 echo "Installing required packages"
 
 sudo apt update
-sudo apt install \
+sudo apt install -y \
   git virtualenv python2-dev libffi-dev build-essential libncurses-dev libusb-dev stm32flash libnewlib-arm-none-eabi gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0-0 pkg-config dfu-util \
   python3-virtualenv python3-dev libopenjp2-7 python3-libgpiod liblmdb0 libsodium-dev zlib1g-dev libjpeg-dev libcurl4-openssl-dev libssl-dev python-markupsafe python-jinja2 \
   python3-tornado python3-serial python3-pillow python3-lmdb python3-libnacl python3-paho-mqtt python3-pycurl curl \
@@ -74,6 +80,8 @@ curl https://bootstrap.pypa.io/pip/2.7/get-pip.py | sudo python2 -
 sudo python2 -m pip install setuptools wheel
 sudo python2 -m pip install -r $KLIPPER/scripts/klippy-requirements.txt
 
+sudo python2 -m pip cache purge
+
 ### moonraker
 echo "Installing moonraker"
 
@@ -95,6 +103,8 @@ do
   sed -i "s#$n.*#$n#" ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt
 done
 sudo pip3 install -r ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt
+
+sudo pip3 cache purge
 
 cat <<EOF > ${HOME}/.xsession
 cd $KLIPPERSCREEN
