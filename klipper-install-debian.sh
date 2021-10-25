@@ -6,17 +6,21 @@ then
   exit 1
 fi
 
+read -d . DEBIAN_VERSION < /etc/debian_version
+if [ "$DEBIAN_VERSION" != "11" ]
+then
+  echo "You should run Debian 11!"
+  exit 1
+fi
+
 ### environment
 echo "Initializing environment variables"
 
-KLIPPY_ENV="$HOME/klippy-env"
-MOONRAKER_ENV="$HOME/moonraker-env"
+KIAUH="$HOME/kiauh"
+KLIPPER="$HOME/klipper"
+MOONRAKER="$HOME/moonraker"
+KLIPPERSCREEN="$HOME/KlipperScreen"
 
-KIAUH_GIT="$HOME/kiauh"
-KLIPPER_GIT="$HOME/klipper"
-MOONRAKER_GIT="$HOME/moonraker"
-
-GLOBAL_START="/etc/rc.local"
 KLIPPER_START="/etc/init.d/klipper"
 MOONRAKER_START="/etc/init.d/moonraker"
 
@@ -32,16 +36,21 @@ sudo mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
 echo "Installing required packages"
 
 sudo apt update
-sudo apt install git virtualenv python-dev libffi-dev build-essential libncurses-dev libusb-dev stm32flash libnewlib-arm-none-eabi gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0 pkg-config dfu-util python3-virtualenv python3-dev libopenjp2-7 python3-libgpiod liblmdb0 libsodium-dev zlib1g-dev libjpeg-dev libcurl4-openssl-dev libssl-dev
+sudo apt install \
+  git virtualenv python2-dev libffi-dev build-essential libncurses-dev libusb-dev stm32flash libnewlib-arm-none-eabi gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0-0 pkg-config dfu-util \
+  python3-virtualenv python3-dev libopenjp2-7 python3-libgpiod liblmdb0 libsodium-dev zlib1g-dev libjpeg-dev libcurl4-openssl-dev libssl-dev python-markupsafe python-jinja2 \
+  python3-tornado python3-serial python3-pillow python3-lmdb python3-libnacl python3-paho-mqtt python3-pycurl curl \
+  libopenjp2-7 python3-distutils python3-gi python3-gi-cairo gir1.2-gtk-3.0 wireless-tools libatlas-base-dev fonts-freefont-ttf python3-websocket python3-requests python3-humanize python3-jinja2 python3-ruamel.yaml python3-matplotlib
 sudo apt install -f
 sudo apt clean
 
 ### git
 echo "Clonning klipper software"
 
-git clone https://github.com/th33xitus/kiauh.git $KIAUH_GIT
-git clone https://github.com/KevinOConnor/klipper.git $KLIPPER_GIT
-git clone https://github.com/Arksine/moonraker.git $MOONRAKER_GIT
+git clone https://github.com/th33xitus/kiauh.git $KIAUH
+git clone https://github.com/KevinOConnor/klipper.git $KLIPPER
+git clone https://github.com/Arksine/moonraker.git $MOONRAKER
+git clone https://github.com/jordanruthe/KlipperScreen.git $KLIPPERSCREEN
 
 ### folders
 echo "Creating klipper folders"
@@ -52,36 +61,45 @@ mkdir -p $GCODE_FILES
 ### configs
 echo "Fixing config files"
 
-cp -f $KIAUH_GIT/resources/printer.cfg $KLIPPER_CONFIG
-cp -f $KIAUH_GIT/resources/kiauh_macros.cfg $KLIPPER_CONFIG
+cp -f $KIAUH/resources/printer.cfg $KLIPPER_CONFIG
+cp -f $KIAUH/resources/kiauh_macros.cfg $KLIPPER_CONFIG
 sed -i "s#serial:.*#serial: /dev/ttyACM0#" $KLIPPER_CONFIG/printer.cfg
 sed -i "1 i [include kiauh_macros.cfg]" $KLIPPER_CONFIG/printer.cfg
 
 ### klipper
 echo "Installing klipper"
 
-mkdir -p $KLIPPY_ENV
-virtualenv $KLIPPY_ENV
-$KLIPPY_ENV/bin/pip install -U pip setuptools wheel
-$KLIPPY_ENV/bin/pip install -r $KLIPPER_GIT/scripts/klippy-requirements.txt
+curl https://bootstrap.pypa.io/pip/2.7/get-pip.py | sudo python2 -
+
+sudo python2 -m pip install setuptools wheel
+sudo python2 -m pip install -r $KLIPPER/scripts/klippy-requirements.txt
 
 ### moonraker
 echo "Installing moonraker"
 
-mkdir -p $MOONRAKER_ENV
-virtualenv -p /usr/bin/python3 $MOONRAKER_ENV
-${MOONRAKER_ENV}/bin/pip install -U pip setuptools wheel
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 streaming-form-data
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 tornado
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 pillow
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 lmdb
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 pycurl
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 distro
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 inotify-simple
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 libnacl
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 paho-mqtt
-${MOONRAKER_ENV}/bin/pip install --no-use-pep517 -r ${MOONRAKER_GIT}/scripts/moonraker-requirements.txt
-${MOONRAKER_ENV}/bin/pip install -r ${MOONRAKER_GIT}/scripts/moonraker-requirements.txt
+sudo pip3 install -U pip setuptools wheel
+sudo pip3 install --no-use-pep517 "$(grep "streaming-form-data" ${MOONRAKER}/scripts/moonraker-requirements.txt)"
+sudo pip3 install --no-use-pep517 "$(grep "distro" ${MOONRAKER}/scripts/moonraker-requirements.txt)"
+
+for n in tornado pyserial pillow lmdb libnacl paho-mqtt pycurl
+do
+  sed -i "s#$n.*#$n#" ${MOONRAKER}/scripts/moonraker-requirements.txt
+done
+sudo pip3 install --no-use-pep517 -r ${MOONRAKER}/scripts/moonraker-requirements.txt
+
+### KlipperScreen
+echo "Installing KlipperScreen"
+
+for n in humanize jinja2 matplotlib requests websocket-client
+do
+  sed -i "s#$n.*#$n#" ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt
+done
+sudo pip3 install -r ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt
+
+cat <<EOF > ${HOME}/.xsession
+cd $KLIPPERSCREEN
+exec python3 ./screen.py
+EOF
 
 cat <<EOF > ${KLIPPER_CONFIG}/moonraker.conf
 [server]
@@ -111,7 +129,7 @@ cors_domains:
 EOF
 
 ### autostart
-echo "Creating autostart entries for run-parts"
+echo "Creating autostart entries for sysv"
 
 sudo mv /usr/bin/systemctl /usr/bin/systemctl2
 sudo tee /usr/bin/systemctl <<EOF
@@ -144,14 +162,15 @@ sudo tee $KLIPPER_START <<EOF
 N=/etc/init.d/klipper
 PIDFILE=/run/klipper.pid
 USERNAME=$USER
-EXEC="/home/\$USERNAME/klippy-env/bin/python"
+EXEC="/usr/bin/python2.7"
 EXEC_OPTS="/home/\$USERNAME/klipper/klippy/klippy.py /home/\$USERNAME/klipper_config/printer.cfg -l /tmp/klippy.log -a /tmp/klippy_uds"
 
 set -e
 
 f_start ()
 {
-  chmod 777 /dev/ttyACM0
+  chmod 777 /dev/ttyACM0 ||:
+  mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
   start-stop-daemon --start --background --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
 }
 
@@ -200,7 +219,7 @@ sudo tee $MOONRAKER_START <<EOF
 N=/etc/init.d/moonraker
 PIDFILE=/run/moonraker.pid
 USERNAME=$USER
-EXEC="/home/\$USERNAME/moonraker-env/bin/python"
+EXEC="/usr/bin/python3"
 EXEC_OPTS="/home/\$USERNAME/moonraker/moonraker/moonraker.py -c /home/\$USERNAME/klipper_config/moonraker.conf -l /tmp/moonraker.log"
 
 set -e
@@ -239,15 +258,8 @@ exit 0
 EOF
 sudo chmod +x $MOONRAKER_START
 
-sudo tee -a $GLOBAL_START <<EOF
-#!/bin/bash
-mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
-chmod 777 /dev/ttyACM0
-
-service klipper start
-service moonraker start
-EOF
-sudo chmod +x $GLOBAL_START
+sudo update-rc.d klipper defaults
+sudo update-rc.d moonraker defaults
 
 sudo service klipper start
 sleep 10
@@ -255,3 +267,4 @@ sudo service moonraker start
 
 ### complete
 echo "Installation complete! Starting klipper and moonraker now!"
+echo "Edit $KLIPPERSCREEN/ks_includes/defaults.conf then restart container to start KlipperScreen"
