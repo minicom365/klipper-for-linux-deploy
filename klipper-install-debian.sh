@@ -33,6 +33,8 @@ MOONRAKER_START="/etc/init.d/moonraker"
 KLIPPER_CONFIG="$HOME/klipper_config"
 GCODE_FILES="$HOME/gcode_files"
 
+KLIPPERSCREEN_FIX="$HOME/klipperscreen-fix"
+
 TTYFIX="/usr/bin/ttyfix"
 TTYFIX_START="/etc/init.d/ttyfix"
 
@@ -141,6 +143,18 @@ cors_domains:
 
 [history]
 EOF
+
+### helpers
+echo "Creating $KLIPPERSCREEN_FIX script, you can use it for changing graphics session to KlipperScreen after reconfiguring container"
+cat <<EOF > $KLIPPERSCREEN_FIX
+#!/bin/bash
+
+cat <<EOZ > \$HOME/.xsession
+cd $KLIPPERSCREEN
+exec python3 ./screen.py
+EOZ
+EOF
+chmod +x $KLIPPERSCREEN_FIX
 
 ### autostart
 echo "Creating autostart entries for sysv"
@@ -340,11 +354,13 @@ sudo update-rc.d klipper defaults
 sudo update-rc.d moonraker defaults
 sudo update-rc.d ttyfix defaults
 
+echo "Starting klipper and moonraker services now"
+
 sudo service ttyfix start
 sudo service klipper start
 sleep 10
 sudo service moonraker start
 
 ### complete
-echo "Installation complete! Starting klipper and moonraker now!"
+echo "Installation completed!"
 echo "Edit $KLIPPER_CONFIG/KlipperScreen.conf then restart container to start KlipperScreen"
