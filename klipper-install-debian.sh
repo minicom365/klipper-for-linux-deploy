@@ -15,7 +15,7 @@ fi
 
 if ! grep xterm "$HOME/.xsession" > /dev/null
 then
-  echo "Configure container with XTerm graphics over vnc!"
+  echo "Configure container with XTerm graphics over VNC or X11!"
   exit 1
 fi
 
@@ -33,7 +33,7 @@ MOONRAKER_START="/etc/init.d/moonraker"
 KLIPPER_CONFIG="$HOME/klipper_config"
 GCODE_FILES="$HOME/gcode_files"
 
-KLIPPERSCREEN_FIX="$HOME/klipperscreen-fix"
+KLIPPERSCREEN_XTERM="/usr/local/bin/xterm"
 
 TTYFIX="/usr/bin/ttyfix"
 TTYFIX_START="/etc/init.d/ttyfix"
@@ -112,10 +112,13 @@ sudo pip3 install -r ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt
 
 sudo pip3 cache purge
 
-cat <<EOF > ${HOME}/.xsession
+sudo tee "$KLIPPERSCREEN_XTERM" <<EOF
+#!/bin/bash
+
 cd $KLIPPERSCREEN
 exec python3 ./screen.py
 EOF
+sudo chmod +x "$KLIPPERSCREEN_XTERM"
 
 cat <<EOF > ${KLIPPER_CONFIG}/moonraker.conf
 [server]
@@ -143,18 +146,6 @@ cors_domains:
 
 [history]
 EOF
-
-### helpers
-echo "Creating $KLIPPERSCREEN_FIX script, you can use it for changing graphics session to KlipperScreen after reconfiguring container"
-cat <<EOF > $KLIPPERSCREEN_FIX
-#!/bin/bash
-
-cat <<EOZ > \$HOME/.xsession
-cd $KLIPPERSCREEN
-exec python3 ./screen.py
-EOZ
-EOF
-chmod +x $KLIPPERSCREEN_FIX
 
 ### autostart
 echo "Creating autostart entries for sysv"
@@ -361,6 +352,11 @@ sudo service klipper start
 sleep 10
 sudo service moonraker start
 
+echo "Starting KlipperScreen instead of XTerm"
+
+sudo pkill xterm
+export DISPLAY=:0
+xterm >/dev/null 2>&1 &
+
 ### complete
 echo "Installation completed!"
-echo "Edit $KLIPPER_CONFIG/KlipperScreen.conf then restart container to start KlipperScreen"
