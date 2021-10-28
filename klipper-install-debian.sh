@@ -33,6 +33,9 @@ MOONRAKER_START="/etc/init.d/moonraker"
 KLIPPER_CONFIG="$HOME/klipper_config"
 GCODE_FILES="$HOME/gcode_files"
 
+TTYFIX="/usr/bin/ttyfix"
+TTYFIX_START="/etc/init.d/ttyfix"
+
 ### Mounting /tmp
 echo "Re-mounting /tmp from tmpfs"
 
@@ -43,7 +46,7 @@ echo "Installing required packages"
 
 sudo apt update
 sudo apt install -y \
-  git virtualenv python2-dev libffi-dev build-essential libncurses-dev libusb-dev stm32flash libnewlib-arm-none-eabi gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0-0 pkg-config dfu-util \
+  git inotify-tools virtualenv python2-dev libffi-dev build-essential libncurses-dev libusb-dev stm32flash libnewlib-arm-none-eabi gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0-0 pkg-config dfu-util \
   python3-virtualenv python3-dev libopenjp2-7 python3-libgpiod liblmdb0 libsodium-dev zlib1g-dev libjpeg-dev libcurl4-openssl-dev libssl-dev python-markupsafe python-jinja2 \
   python3-tornado python3-serial python3-pillow python3-lmdb python3-libnacl python3-paho-mqtt python3-pycurl curl \
   libopenjp2-7 python3-distutils python3-gi python3-gi-cairo gir1.2-gtk-3.0 wireless-tools libatlas-base-dev fonts-freefont-ttf python3-websocket python3-requests python3-humanize python3-jinja2 python3-ruamel.yaml python3-matplotlib
@@ -141,6 +144,70 @@ EOF
 ### autostart
 echo "Creating autostart entries for sysv"
 
+sudo tee "$TTYFIX" <<EOF
+#!/bin/bash
+
+inotifywait -m /dev -e create |
+  while read dir action file
+  do
+    [ "\$file" = "ttyACM0" ] && chmod 777 /dev/ttyACM0
+  done
+EOF
+sudo chmod +x "$TTYFIX"
+
+sudo tee "$TTYFIX_START" <<EOF
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          ttyfix
+# Default-Start:        2 3 4 5
+# Default-Stop:
+# Required-Start:    \$local_fs \$remote_fs
+# Short-Description: ttyfix
+# Description: ttyfix
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+N="$TTYFIX_START"
+PIDFILE=/run/ttyfix.pid
+EXEC="$TTYFIX"
+
+set -e
+
+f_start ()
+{
+  start-stop-daemon --start --background --retry --make-pidfile --pidfile \$PIDFILE --exec \$EXEC
+}
+
+f_stop ()
+{
+  start-stop-daemon --stop --pidfile \$PIDFILE
+}
+
+case "\$1" in
+  start)
+        f_start
+        ;;
+  stop)
+        f_stop
+        ;;
+  restart)
+        f_stop
+        sleep 1
+        f_start
+        ;;
+  reload|force-reload|status)
+        ;;
+  *)
+        echo "Usage: $N {start|stop|restart|force-reload|status}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0
+EOF
+sudo chmod +x "$TTYFIX_START"
+
 sudo mv /usr/bin/systemctl /usr/bin/systemctl2
 sudo tee /usr/bin/systemctl <<EOF
 #!/bin/bash
@@ -169,7 +236,7 @@ sudo tee $KLIPPER_START <<EOF
 
 . /lib/lsb/init-functions
 
-N=/etc/init.d/klipper
+N=$KLIPPER_START
 PIDFILE=/run/klipper.pid
 USERNAME=$USER
 EXEC="/usr/bin/python2.7"
@@ -181,7 +248,7 @@ f_start ()
 {
   chmod 777 /dev/ttyACM0 ||:
   mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
-  start-stop-daemon --start --background --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
+  start-stop-daemon --start --background --retry --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
 }
 
 f_stop ()
@@ -226,7 +293,7 @@ sudo tee $MOONRAKER_START <<EOF
 
 . /lib/lsb/init-functions
 
-N=/etc/init.d/moonraker
+N=$MOONRAKER_START
 PIDFILE=/run/moonraker.pid
 USERNAME=$USER
 EXEC="/usr/bin/python3"
@@ -236,7 +303,7 @@ set -e
 
 f_start ()
 {
-  start-stop-daemon --start --background --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
+  start-stop-daemon --start --background --retry --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
 }
 
 f_stop ()
@@ -270,7 +337,9 @@ sudo chmod +x $MOONRAKER_START
 
 sudo update-rc.d klipper defaults
 sudo update-rc.d moonraker defaults
+sudo update-rc.d ttyfix defaults
 
+sudo service ttyfix start
 sudo service klipper start
 sleep 10
 sudo service moonraker start
