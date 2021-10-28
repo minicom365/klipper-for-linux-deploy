@@ -74,6 +74,7 @@ cp -f $KIAUH/resources/printer.cfg $KLIPPER_CONFIG
 cp -f $KIAUH/resources/kiauh_macros.cfg $KLIPPER_CONFIG
 sed -i "s#serial:.*#serial: /dev/ttyACM0#" $KLIPPER_CONFIG/printer.cfg
 sed -i "1 i [include kiauh_macros.cfg]" $KLIPPER_CONFIG/printer.cfg
+cp -f $KLIPPERSCREEN/ks_includes/defaults.conf $KLIPPER_CONFIG/KlipperScreen.conf
 
 ### klipper
 echo "Installing klipper"
@@ -346,4 +347,4 @@ sudo service moonraker start
 
 ### complete
 echo "Installation complete! Starting klipper and moonraker now!"
-echo "Edit $KLIPPERSCREEN/ks_includes/defaults.conf then restart container to start KlipperScreen"
+echo "Edit $KLIPPER_CONFIG/KlipperScreen.conf then restart container to start KlipperScreen"
