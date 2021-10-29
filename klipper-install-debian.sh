@@ -94,6 +94,7 @@ echo "Installing moonraker"
 sudo pip3 install -U pip setuptools wheel
 sudo pip3 install --no-use-pep517 "$(grep "streaming-form-data" ${MOONRAKER}/scripts/moonraker-requirements.txt)"
 sudo pip3 install --no-use-pep517 "$(grep "distro" ${MOONRAKER}/scripts/moonraker-requirements.txt)"
+sudo pip3 install --no-use-pep517 "$(grep "inotify-simple" ${MOONRAKER}/scripts/moonraker-requirements.txt)"
 
 for n in tornado pyserial pillow lmdb libnacl paho-mqtt pycurl
 do
