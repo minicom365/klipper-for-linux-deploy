@@ -182,7 +182,7 @@ set -e
 
 f_start ()
 {
-  start-stop-daemon --start --background --retry --make-pidfile --pidfile \$PIDFILE --exec \$EXEC
+  start-stop-daemon --start --background --make-pidfile --pidfile \$PIDFILE --exec \$EXEC
 }
 
 f_stop ()
@@ -254,7 +254,7 @@ f_start ()
 {
   chmod 777 /dev/ttyACM0 ||:
   mount -o mode=1777,nosuid,nodev -t tmpfs tmpfs /tmp
-  start-stop-daemon --start --background --retry --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
+  start-stop-daemon --start --background --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
 }
 
 f_stop ()
@@ -309,7 +309,7 @@ set -e
 
 f_start ()
 {
-  start-stop-daemon --start --background --retry --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
+  start-stop-daemon --start --background --chuid \$USERNAME --make-pidfile --pidfile \$PIDFILE --exec \$EXEC -- \$EXEC_OPTS
 }
 
 f_stop ()
