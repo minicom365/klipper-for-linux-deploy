@@ -108,6 +108,8 @@ for n in humanize jinja2 matplotlib requests websocket-client
 do
   sed -i "s#$n.*#$n#" ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt
 done
+sudo pip3 install --no-use-pep517 "$(grep "netifaces" ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt)"
+sudo pip3 install --no-use-pep517 "$(grep "vext" ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt)"
 sudo pip3 install -r ${KLIPPERSCREEN}/scripts/KlipperScreen-requirements.txt
 
 sudo pip3 cache purge
