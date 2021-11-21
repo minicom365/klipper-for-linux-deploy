@@ -58,7 +58,6 @@ sudo apt install -y \
 sudo apt install -f
 sudo apt clean
 sudo python3 -m pip install setuptools wheel
-pip install vext vext.gi
 
 ### git
 echo "Clonning klipper software"
@@ -134,7 +133,10 @@ cd ~/
 
 ### install KlipperScreen
 echo "Installing KlipperScreen"
+sudo sed -i "s#pip install#pip install --no-use-pep517#" ~/KlipperScreen/scripts/KlipperScreen-install.sh
 ~/KlipperScreen/scripts/KlipperScreen-install.sh
+sudo sed -i "s#pip install#pip install --no-use-pep517#" ~/KlipperScreen/scripts/KlipperScreen-install.sh
+
 
 ### fix KlipperScreen service
 sudo systemctl enable KlipperScreen
