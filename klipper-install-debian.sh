@@ -54,10 +54,11 @@ sudo apt install -y \
   git inotify-tools virtualenv python2-dev libffi-dev build-essential libncurses-dev libusb-dev stm32flash libnewlib-arm-none-eabi gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0-0 pkg-config dfu-util \
   python3-virtualenv python3-dev libopenjp2-7 python3-libgpiod liblmdb0 libsodium-dev zlib1g-dev libjpeg-dev libcurl4-openssl-dev libssl-dev python-markupsafe python-jinja2 \
   python3-tornado python3-serial python3-pillow python3-lmdb python3-libnacl python3-paho-mqtt python3-pycurl curl \
-  libopenjp2-7 python3-distutils python3-gi python3-gi-cairo gir1.2-gtk-3.0 wireless-tools libatlas-base-dev fonts-freefont-ttf python3-websocket python3-requests python3-humanize python3-jinja2 python3-ruamel.yaml python3-matplotlib unzip
+  libopenjp2-7 python3-distutils python3-gi python3-gi-cairo gir1.2-gtk-3.0 wireless-tools libatlas-base-dev fonts-freefont-ttf python3-websocket python3-requests python3-humanize python3-jinja2 python3-ruamel.yaml python3-matplotlib unzip nginx
 sudo apt install -f
 sudo apt clean
-sudo python3 -m pip install setuptools wheel vext vext.gi
+sudo python3 -m pip install setuptools wheel
+pip install vext vext.gi
 
 ### git
 echo "Clonning klipper software"
@@ -94,7 +95,9 @@ sudo sed -i "s#/tmp#/home/$USER/klipper_logs#" /etc/systemd/system/klipper.servi
 
 ### install moonraker
 echo "Installing moonraker"
+sudo sed -i "s#pip install#pip install --no-use-pep517#" ~/moonraker/scripts/install-moonraker.sh
 ~/moonraker/scripts/install-moonraker.sh -c "${HOME}/klipper_config/moonraker.conf" -l "${HOME}/klipper_logs/moonraker.log"
+sudo sed -i "s#pip install --no-use-pep517#pip install#" ~/moonraker/scripts/install-moonraker.sh
 
 ### fix moonraker service
 sudo ln -s /usr/local/lib/python3.9/dist-packages/pip /usr/bin/pip
