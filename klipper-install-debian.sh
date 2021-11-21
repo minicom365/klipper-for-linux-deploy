@@ -26,6 +26,8 @@ KIAUH="$HOME/kiauh"
 KLIPPER="$HOME/klipper"
 MOONRAKER="$HOME/moonraker"
 KLIPPERSCREEN="$HOME/KlipperScreen"
+FLUIDD="$HOME/fluidd"
+KWC="https://github.com/fluidd-core/fluidd/releases/download/v1.16.2/fluidd.zip"
 
 KLIPPER_START="/etc/init.d/klipper"
 MOONRAKER_START="/etc/init.d/moonraker"
@@ -90,6 +92,7 @@ echo "Installing klipper"
 ### fix klipper service
 sudo sed -i "s#printer.cfg#klipper_config/printer.cfg#" /etc/systemd/system/klipper.service
 sudo sed -i "s#/tmp#/home/$USER/klipper_logs#" /etc/systemd/system/klipper.service
+
 ### install moonraker
 echo "Installing moonraker"
 ~/moonraker/scripts/install-moonraker.sh -c "${HOME}/klipper_config/moonraker.conf" -l "${HOME}/klipper_logs/moonraker.log"
@@ -97,6 +100,34 @@ echo "Installing moonraker"
 ### fix moonraker service
 sudo ln -s /usr/local/lib/python3.9/dist-packages/pip /usr/bin/pip
 ~/moonraker/scripts/sudo_fix.sh
+
+### config nginx
+report_status "Installing symbolic link..."
+FILE=/etc/nginx/sites-available/fluidd
+if [ -e "$FILE" ];
+then
+	echo "$FILE exist"
+else
+	echo "$FILE does not exist"
+	
+	NGINXDIR="/etc/nginx/sites-available"
+	NGINXUPS="/etc/nginx/conf.d/"
+	NGINXVARS="/etc/nginx/conf.d/"
+	sudo /bin/sh -c "cp ${SRCDIR}/Fluidd-install/fluidd $NGINXDIR/"
+	sudo /bin/sh -c "cp ${SRCDIR}/Fluidd-install/upstreams.conf $NGINXUPS/"
+	sudo /bin/sh -c "cp ${SRCDIR}/Fluidd-install/common_vars.conf $NGINXVARS/"
+
+	sudo ln -s /etc/nginx/sites-available/fluidd /etc/nginx/sites-enabled/
+	sudo rm /etc/nginx/sites-available/default
+	sudo rm /etc/nginx/sites-enabled/default
+	sudo systemctl restart nginx
+fi
+
+### install fluidd
+mkdir ${FLUIDD}
+cd ${FLUIDD}
+wget -q -O fluidd.zip ${KWC} && unzip fluidd.zip && rm fluidd.zip
+cd ~/
 
 ### install KlipperScreen
 echo "Installing KlipperScreen"
@@ -143,7 +174,7 @@ EOF
 ### configs
 echo "Fixing config files"
 
-mkdir ~/klipper_config ~/klipper_logs ~/gcode_files
+mkdir ${KLIPPER_CONFIG} ${KLIPPER_LOGS} ${GCODE_FILES}
 cp -f $KIAUH/resources/printer.cfg $KLIPPER_CONFIG
 sed -i "s#serial:.*#serial: /dev/ttyACM0#" $KLIPPER_CONFIG/printer.cfg
 cp -f $KLIPPERSCREEN/ks_includes/defaults.conf $KLIPPER_CONFIG/KlipperScreen.conf
@@ -325,6 +356,7 @@ sudo chmod +x $MOONRAKER_START
 sudo update-rc.d klipper defaults
 sudo update-rc.d moonraker defaults
 sudo update-rc.d ttyfix defaults
+sudo update-rc.d nginx defaults
 
 echo "Starting klipper and moonraker services now"
 
