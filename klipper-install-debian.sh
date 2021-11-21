@@ -113,7 +113,7 @@ exec ../.KlipperScreen-env/bin/python ./screen.py
 EOF
 sudo chmod +x "$KLIPPERSCREEN_XTERM"
 
-cat <<EOF > ${KLIPPER_CONFIG}/moonraker.conf
+sudo tee  ${KLIPPER_CONFIG}/moonraker.conf <<EOF
 [server]
 host: 0.0.0.0
 port: 7125
@@ -151,18 +151,17 @@ cp -f $KLIPPERSCREEN/ks_includes/defaults.conf $KLIPPER_CONFIG/KlipperScreen.con
 ### autostart
 echo "Creating autostart entries for sysv"
 
-sudo tee "$TTYFIX" <<EOF
+sudo tee $TTYFIX <<EOF
 #!/bin/bash
-
 inotifywait -m /dev -e create |
   while read dir action file
   do
     [ "\$file" = "ttyACM0" ] && chmod 777 /dev/ttyACM0
   done
 EOF
-sudo chmod +x "$TTYFIX"
+sudo chmod +x $TTYFIX
 
-sudo tee "$TTYFIX_START" <<EOF
+sudo tee $TTYFIX_START <<EOF
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          ttyfix
@@ -175,10 +174,10 @@ sudo tee "$TTYFIX_START" <<EOF
 
 . /lib/lsb/init-functions
 
-N="$TTYFIX_START"
+N=$TTYFIX_START
 PIDFILE=/run/ttyfix.pid
-EXEC="$TTYFIX"
 
+EXEC=$TTYFIX
 set -e
 
 f_start ()
