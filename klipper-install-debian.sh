@@ -358,6 +358,44 @@ sudo update-rc.d moonraker defaults
 sudo update-rc.d ttyfix defaults
 sudo update-rc.d nginx defaults
 
+echo " "
+echo "########################"
+echo "###  Fixing logs...  ###"
+echo "########################"
+echo " "
+
+echo " "
+echo "Creating logrotate configuration files..."
+echo " "
+
+sudo tee /etc/logrotate.d/klipper <<EOF
+$KLIPPER_LOGS/klippy.log
+{
+    rotate 7
+    daily
+    maxsize 64M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+}
+EOF
+
+sudo tee /etc/logrotate.d/moonraker <<EOF
+$KLIPPER_LOGS/moonraker.log
+{
+    rotate 7
+    daily
+    maxsize 64M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+}
+EOF
+
 echo "Starting klipper and moonraker services now"
 
 sudo service ttyfix start
