@@ -57,8 +57,7 @@ sudo apt install -y \
   libopenjp2-7 python3-distutils python3-gi python3-gi-cairo gir1.2-gtk-3.0 wireless-tools libatlas-base-dev fonts-freefont-ttf python3-websocket python3-requests python3-humanize python3-jinja2 python3-ruamel.yaml python3-matplotlib unzip
 sudo apt install -f
 sudo apt clean
-sudo python2 -m pip install setuptools wheel
-sudo python3 -m pip install setuptools wheel
+sudo python3 -m pip install setuptools wheel vext vext.gi
 
 ### git
 echo "Clonning klipper software"
@@ -101,8 +100,8 @@ echo "Installing moonraker"
 sudo ln -s /usr/local/lib/python3.9/dist-packages/pip /usr/bin/pip
 ~/moonraker/scripts/sudo_fix.sh
 
+
 ### config nginx
-report_status "Installing symbolic link..."
 FILE=/etc/nginx/sites-available/fluidd
 if [ -e "$FILE" ];
 then
@@ -111,15 +110,16 @@ else
 	echo "$FILE does not exist"
 	
 	NGINXDIR="/etc/nginx/sites-available"
-	NGINXUPS="/etc/nginx/conf.d/"
-	NGINXVARS="/etc/nginx/conf.d/"
-	sudo /bin/sh -c "cp ${SRCDIR}/Fluidd-install/fluidd $NGINXDIR/"
-	sudo /bin/sh -c "cp ${SRCDIR}/Fluidd-install/upstreams.conf $NGINXUPS/"
-	sudo /bin/sh -c "cp ${SRCDIR}/Fluidd-install/common_vars.conf $NGINXVARS/"
+	NGINXUPS="/etc/nginx/conf.d"
+	NGINXVARS="/etc/nginx/conf.d"
+	sudo wget -q -O $NGINXDIR/fluidd https://github.com/BlackStump/Fluidd-install/raw/master/fluidd
+	sudo wget -q -O $NGINXUPS/upstreams.conf https://github.com/BlackStump/Fluidd-install/raw/master/upstreams.conf
+	sudo wget -q -O $NGINXVARS/common_vars.conf https://github.com/BlackStump/Fluidd-install/raw/master/common_vars.conf
 
 	sudo ln -s /etc/nginx/sites-available/fluidd /etc/nginx/sites-enabled/
 	sudo rm /etc/nginx/sites-available/default
 	sudo rm /etc/nginx/sites-enabled/default
+	sudo update-rc.d nginx defaults
 	sudo systemctl restart nginx
 fi
 
@@ -144,6 +144,7 @@ exec ../.KlipperScreen-env/bin/python ./screen.py
 EOF
 sudo chmod +x "$KLIPPERSCREEN_XTERM"
 
+sudo touch ${KLIPPER_CONFIG}/moonraker.conf
 sudo tee  ${KLIPPER_CONFIG}/moonraker.conf <<EOF
 [server]
 host: 0.0.0.0
@@ -356,7 +357,6 @@ sudo chmod +x $MOONRAKER_START
 sudo update-rc.d klipper defaults
 sudo update-rc.d moonraker defaults
 sudo update-rc.d ttyfix defaults
-sudo update-rc.d nginx defaults
 
 echo " "
 echo "########################"
