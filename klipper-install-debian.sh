@@ -94,9 +94,9 @@ sudo sed -i "s#/tmp#/home/$USER/klipper_logs#" /etc/systemd/system/klipper.servi
 
 ### install moonraker
 echo "Installing moonraker"
-sudo sed -i "s#pip install#pip install --user#" ~/moonraker/scripts/install-moonraker.sh
+sudo sed -i "s#pip install#pip install --no-use-pep517#" ~/moonraker/scripts/install-moonraker.sh
 ~/moonraker/scripts/install-moonraker.sh -c "${HOME}/klipper_config/moonraker.conf" -l "${HOME}/klipper_logs/moonraker.log"
-sudo sed -i "s#pip install --user#pip install#" ~/moonraker/scripts/install-moonraker.sh
+sudo sed -i "s#pip install --no-use-pep517#pip install#" ~/moonraker/scripts/install-moonraker.sh
 
 ### fix moonraker service
 sudo ln -s /usr/local/lib/python3.9/dist-packages/pip /usr/bin/pip
@@ -133,9 +133,9 @@ cd ~/
 
 ### install KlipperScreen
 echo "Installing KlipperScreen"
-sudo sed -i "s#pip install#pip install --no-use-pep517#" ~/KlipperScreen/scripts/KlipperScreen-install.sh
+sudo sed -i "s#pip install#pip install --user#" ~/KlipperScreen/scripts/KlipperScreen-install.sh
 ~/KlipperScreen/scripts/KlipperScreen-install.sh
-sudo sed -i "s#pip install#pip install --no-use-pep517#" ~/KlipperScreen/scripts/KlipperScreen-install.sh
+sudo sed -i "s#pip install#pip install --user#" ~/KlipperScreen/scripts/KlipperScreen-install.sh
 
 
 ### fix KlipperScreen service
